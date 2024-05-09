@@ -3,25 +3,18 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EmqxLearning.MqttListener", "EmqxLearning.MqttListener\EmqxLearning.MqttListener.csproj", "{E386D96A-BC84-4555-8D70-5AEB9A248CC2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EmqxLearning.MqttListener", "EmqxLearning.MqttListener\EmqxLearning.MqttListener.csproj", "{E386D96A-BC84-4555-8D70-5AEB9A248CC2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EmqxLearning.MqttPublisher", "EmqxLearning.MqttPublisher\EmqxLearning.MqttPublisher.csproj", "{E0F35890-90AD-4B29-95CA-5073ED1EE052}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EmqxLearning.MqttPublisher", "EmqxLearning.MqttPublisher\EmqxLearning.MqttPublisher.csproj", "{E0F35890-90AD-4B29-95CA-5073ED1EE052}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EmqxLearning.RabbitMqConsumer", "EmqxLearning.RabbitMqConsumer\EmqxLearning.RabbitMqConsumer.csproj", "{9DD5EE40-22CB-41B1-89E6-CE83BBF0FFB6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EmqxLearning.Shared", "EmqxLearning.Shared\EmqxLearning.Shared.csproj", "{04AB68BD-D99E-453F-851D-E3FF0C01FEED}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EmqxLearning.Shared", "EmqxLearning.Shared\EmqxLearning.Shared.csproj", "{04AB68BD-D99E-453F-851D-E3FF0C01FEED}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EmqxLearning.RabbitMqFunction", "EmqxLearning.RabbitMqFunction\EmqxLearning.RabbitMqFunction.csproj", "{2EC8F518-EC6D-415E-B060-24F5D0373863}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FLS", "FLS\FLS.csproj", "{008088EC-5365-4EBD-BC54-97FC0BB4876C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EmqxLearning.KafkaConsumer", "EmqxLearning.KafkaConsumer\EmqxLearning.KafkaConsumer.csproj", "{A5518502-7D78-4F1E-B217-5F4C51B10544}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{E386D96A-BC84-4555-8D70-5AEB9A248CC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -32,21 +25,19 @@ Global
 		{E0F35890-90AD-4B29-95CA-5073ED1EE052}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E0F35890-90AD-4B29-95CA-5073ED1EE052}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E0F35890-90AD-4B29-95CA-5073ED1EE052}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9DD5EE40-22CB-41B1-89E6-CE83BBF0FFB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9DD5EE40-22CB-41B1-89E6-CE83BBF0FFB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9DD5EE40-22CB-41B1-89E6-CE83BBF0FFB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9DD5EE40-22CB-41B1-89E6-CE83BBF0FFB6}.Release|Any CPU.Build.0 = Release|Any CPU
 		{04AB68BD-D99E-453F-851D-E3FF0C01FEED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{04AB68BD-D99E-453F-851D-E3FF0C01FEED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{04AB68BD-D99E-453F-851D-E3FF0C01FEED}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{04AB68BD-D99E-453F-851D-E3FF0C01FEED}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2EC8F518-EC6D-415E-B060-24F5D0373863}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2EC8F518-EC6D-415E-B060-24F5D0373863}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2EC8F518-EC6D-415E-B060-24F5D0373863}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2EC8F518-EC6D-415E-B060-24F5D0373863}.Release|Any CPU.Build.0 = Release|Any CPU
-		{008088EC-5365-4EBD-BC54-97FC0BB4876C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{008088EC-5365-4EBD-BC54-97FC0BB4876C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{008088EC-5365-4EBD-BC54-97FC0BB4876C}.Release|Any CPU.ActiveCfg = Debug|Any CPU
-		{008088EC-5365-4EBD-BC54-97FC0BB4876C}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{A5518502-7D78-4F1E-B217-5F4C51B10544}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5518502-7D78-4F1E-B217-5F4C51B10544}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5518502-7D78-4F1E-B217-5F4C51B10544}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A5518502-7D78-4F1E-B217-5F4C51B10544}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F36A5F89-C97D-4BAE-8465-873902AECC46}
 	EndGlobalSection
 EndGlobal

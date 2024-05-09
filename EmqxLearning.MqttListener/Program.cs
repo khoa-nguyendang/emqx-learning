@@ -1,6 +1,7 @@
 using EmqxLearning.MqttListener;
 using EmqxLearning.Shared.Exceptions;
 using EmqxLearning.Shared.Extensions;
+using EmqxLearning.Shared.Services;
 using EmqxLearning.Shared.Services.Abstracts;
 using Polly.Registry;
 using RabbitMQ.Client;
@@ -10,19 +11,12 @@ IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
         services.AddHostedService<Worker>();
-        services.AddResourceMonitor()
-            .AddFuzzyThreadController()
-            .AddDynamicRateLimiter();
-
-        SetupRabbitMq(services, context.Configuration);
-
+        services.AddSingleton<IKafkaManager, KafkaManager>();
         var configuration = context.Configuration;
         var resilienceSettings = configuration.GetSection("ResilienceSettings");
         SetupResilience(services, resilienceSettings);
     })
     .Build();
-
-ConnectRabbitMq(host.Services);
 
 await host.RunAsync();
 
@@ -52,47 +46,6 @@ IServiceCollection SetupResilience(IServiceCollection services, IConfiguration r
     });
 }
 
-void ConnectRabbitMq(IServiceProvider provider)
-{
-    var pipelineProvider = provider.GetRequiredService<ResiliencePipelineProvider<string>>();
-    var connectionPipeline = pipelineProvider.GetPipeline(Constants.ResiliencePipelines.ConnectionErrors);
-    var rabbitMqConnectionManager = provider.GetRequiredService<IRabbitMqConnectionManager>();
-    connectionPipeline.Execute(() => rabbitMqConnectionManager.Connect());
-}
-
-void SetupRabbitMq(IServiceCollection services, IConfiguration configuration)
-{
-    var rabbitMqClientOptions = configuration.GetSection("RabbitMqClient");
-    var factory = rabbitMqClientOptions.Get<ConnectionFactory>();
-
-    services.AddRabbitMqConnectionManager(
-        connectionFactory: factory,
-        configureConnectionFactory: SetupRabbitMqConnection,
-        configureChannelFactory: SetupRabbitMqChannel
-    );
-}
-
-Action<IConnection> SetupRabbitMqConnection(IServiceProvider provider)
-{
-    var logger = provider.GetRequiredService<ILogger<Worker>>();
-    Action<IConnection> configureConnection = (connection) =>
-    {
-        connection.ConnectionShutdown += (sender, e) => OnConnectionShutdown(sender, e, logger);
-    };
-    return configureConnection;
-}
-
-Action<IModel> SetupRabbitMqChannel(IServiceProvider provider)
-{
-    var logger = provider.GetRequiredService<ILogger<Worker>>();
-    var configuration = provider.GetRequiredService<IConfiguration>();
-    Action<IModel> configureChannel = (channel) =>
-    {
-        channel.ContinuationTimeout = configuration.GetValue<TimeSpan?>("RabbitMqChannel:ContinuationTimeout") ?? channel.ContinuationTimeout;
-        channel.ModelShutdown += (sender, e) => OnModelShutdown(sender, e, logger);
-    };
-    return configureChannel;
-}
 
 void OnModelShutdown(object sender, ShutdownEventArgs e, ILogger<Worker> logger)
 {
