@@ -21,6 +21,20 @@ namespace EmqxLearning.Shared.Services
             _consumers[topicName].Commit();
         }
 
+        public async Task CloseAsync()
+        {
+            foreach (var i in _producers.Keys)
+            {
+                _producers[i].AbortTransaction();
+                _producers[i].Dispose();
+            }
+            foreach (var i in _consumers.Keys)
+            {
+                _consumers[i].Close();
+                _consumers[i].Dispose();
+            }
+        }
+
         public async Task<(bool success, string err)> ProduceMessageAsync(string topicName, string[] messages, CancellationToken token = default)
         {
             try

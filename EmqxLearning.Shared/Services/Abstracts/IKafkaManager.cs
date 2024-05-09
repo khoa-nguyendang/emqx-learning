@@ -11,4 +11,5 @@ public interface IKafkaManager
     Task ACK(string topicName, long offset, CancellationToken token = default);
     Task ReleaseProducersAsync(string[] topicNames);
     Task ReleaseConsumersAsync(string[] topicNames);
+    Task CloseAsync();
 }
