@@ -88,10 +88,7 @@ public class BatchIngestionService : IIngestionService, IDisposable
                 {
                     if (_messages.Count == 0) return;
                     while (batch.Count < batchSize && _messages.TryDequeue(out var message))
-                    {
                         batch.Add(message);
-                        continue;
-                    }
                     batch.Sort(comparer);
                     await HandleBatch(batch);
                 }
