@@ -46,7 +46,6 @@ namespace EmqxLearning.KafkaConsumer
         private static void ConfigServices(IServiceCollection services, IConfiguration configuration)
         {
             services.AddSingleton<IKafkaManager, KafkaManager>();
-            services.AddHostedService<Worker>();
             services.AddTransient<IngestionService>();
             services.AddTransient<BatchIngestionService>();
             services.AddSingleton<IIngestionService>(provider =>
@@ -57,9 +56,20 @@ namespace EmqxLearning.KafkaConsumer
                     ? provider.GetRequiredService<BatchIngestionService>()
                     : provider.GetRequiredService<IngestionService>();
             });
+           
 
             var resilienceSettings = configuration.GetSection("ResilienceSettings");
             SetupResilience(services, resilienceSettings);
+
+            services.AddHostedService<Worker>(provider =>
+            {
+                var logger = provider.GetRequiredService<ILogger<Worker>>();
+                var cf = provider.GetRequiredService<IConfiguration>();
+                var km = provider.GetRequiredService<IKafkaManager>();
+                var ig = provider.GetRequiredService<IIngestionService>();
+                var rp = provider.GetRequiredService<ResiliencePipelineProvider<string>>();
+                return new Worker(logger, cf, km, ig, rp);
+            });
         }
 
         private static IServiceCollection SetupResilience(IServiceCollection services, IConfiguration resilienceSettings)

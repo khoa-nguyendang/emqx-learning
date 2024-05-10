@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Confluent.Kafka;
 using EmqxLearning.KafkaConsumer.Extensions;
 using EmqxLearning.KafkaConsumer.Services.Abstracts;
@@ -55,10 +56,18 @@ public class BatchIngestionService : IIngestionService, IDisposable
 
     public Task HandleMessage(ConsumeResult<string, string> consumeResult, CancellationToken cancellationToken)
     {
-        var ingestionMessage = JsonSerializer.Deserialize<ReadIngestionMessage>(consumeResult.Message.Value);
-        _stoppingToken = cancellationToken;
-        _logger.LogInformation("Metrics count {Count}", ingestionMessage.RawData.Count);
-        _messages.Enqueue(new(ingestionMessage));
+        try
+        {
+            var ingestionMessage = JsonSerializer.Deserialize<ReadIngestionMessage>(consumeResult.Message.Value);
+            _stoppingToken = cancellationToken;
+            _logger.LogInformation("Metrics count {Count}", ingestionMessage.RawData.Count);
+            _messages.Enqueue(new(ingestionMessage));
+        } 
+        catch(Exception ex)
+        {
+            _logger.LogError("Unable to process messages: {msg} - err: {ex}", JsonSerializer.Serialize(consumeResult.Message.Value), ex);
+        }
+        
         return Task.CompletedTask;
     }
 

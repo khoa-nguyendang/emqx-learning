@@ -130,7 +130,6 @@ namespace EmqxLearning.Shared.Services
             var consumer = new ConsumerBuilder<string, string>(config)
                 // Note: All handlers are called on the main .Consume thread.
                 .SetErrorHandler((_, e) => _logger.LogInformation($"Error: {e.Reason}"))
-                .SetStatisticsHandler((_, json) => _logger.LogInformation($"Statistics: {json}"))
                 .SetPartitionsAssignedHandler((c, partitions) =>
                 {
                     // Since a cooperative assignor (CooperativeSticky) has been configured, the

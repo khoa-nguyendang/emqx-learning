@@ -33,14 +33,20 @@ public class Worker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Start Worker ExecuteAsync");
         await SetupConsumers(cancellationToken);
+        _logger.LogInformation("Completed Worker ExecuteAsync");
+
     }
 
     private async Task SetupConsumers(CancellationToken cancellationToken)
     {
         (var consumer, var err) = await _kafkaManager.StartConsumerAsync(_configuration["Kafka:Topic"], cancellationToken);
-        if (err != null)
+        if (!string.IsNullOrEmpty(err))
+        {
+            _logger.LogError(err);
             return;
+        }
 
         try
         {
