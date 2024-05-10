@@ -60,14 +60,11 @@ services:
       rabbitmq1:
         condition: service_healthy
 
-  # RabbitMQ consumers
-  rabbitmq-consumer-1:
-    image: emqx-learning/rabbitmq-consumer:latest
-    # logging:
-    #   driver: none
+  kafka-consumer-1:
+    image: emqx-learning/kafka-consumer:latest
     build:
       context: .
-      dockerfile: EmqxLearning.RabbitMqConsumer/Dockerfile
+      dockerfile: EmqxLearning.KafkaConsumer/Dockerfile
     environment:
       Logging__LogLevel__Default: Warning
       ProcessingTime: 50
@@ -78,10 +75,6 @@ services:
       BatchSettings__BatchSize: 200
       BatchSettings__WorkerThreadCount: 5
       ConnectionStrings__DeviceDb: Maximum Pool Size=10;User ID=postgres;Password=zaQ@123456!;Host=timescaledb1;Port=5432;Database=device;Pooling=true;
-      RabbitMqClient__HostName: rabbitmq1
-      RabbitMqClient__DispatchConsumersAsync: true
-      RabbitMqClient__ConsumerDispatchConcurrency: 5
-      RabbitMqChannel__PrefetchCount: 2500
     networks:
       - emqx-bridge
     deploy:
@@ -95,6 +88,42 @@ services:
         condition: service_healthy
       timescaledb1:
         condition: service_started
+  
+  # RabbitMQ consumers
+  # rabbitmq-consumer-1:
+  #   image: emqx-learning/rabbitmq-consumer:latest
+  #   # logging:
+  #   #   driver: none
+  #   build:
+  #     context: .
+  #     dockerfile: EmqxLearning.RabbitMqConsumer/Dockerfile
+  #   environment:
+  #     Logging__LogLevel__Default: Warning
+  #     ProcessingTime: 50
+  #     ConsumerCount: 2
+  #     InsertDb: false
+  #     BatchSettings__Enabled: true
+  #     BatchSettings__BatchInterval: 190
+  #     BatchSettings__BatchSize: 200
+  #     BatchSettings__WorkerThreadCount: 5
+  #     ConnectionStrings__DeviceDb: Maximum Pool Size=10;User ID=postgres;Password=zaQ@123456!;Host=timescaledb1;Port=5432;Database=device;Pooling=true;
+  #     RabbitMqClient__HostName: rabbitmq1
+  #     RabbitMqClient__DispatchConsumersAsync: true
+  #     RabbitMqClient__ConsumerDispatchConcurrency: 5
+  #     RabbitMqChannel__PrefetchCount: 2500
+  #   networks:
+  #     - emqx-bridge
+  #   deploy:
+  #     replicas: 2
+  #     resources:
+  #       limits:
+  #         cpus: "4"
+  #         memory: "500M"
+  #   depends_on:
+  #     rabbitmq1:
+  #       condition: service_healthy
+  #     timescaledb1:
+  #       condition: service_started
 
   # rabbitmq-function-1:
   #   image: emqx-learning/rabbitmq-function:latest
