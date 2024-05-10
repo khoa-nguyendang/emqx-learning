@@ -24,7 +24,7 @@ services:
       BackgroundProcessing: true
       ScaleFactor: 50
       ScaleCheckInterval: 5000
-      RabbitMqClient__HostName: rabbitmq1
+      # RabbitMqClient__HostName: rabbitmq1
     networks:
       - emqx-bridge
     deploy:
@@ -36,7 +36,7 @@ services:
     depends_on:
       emqx1:
         condition: service_healthy
-      rabbitmq1:
+      kafka1:
         condition: service_healthy
 
   # MQTT publishers
@@ -57,7 +57,7 @@ services:
     depends_on:
       emqx1:
         condition: service_healthy
-      rabbitmq1:
+      kafka1:
         condition: service_healthy
 
   kafka-consumer-1:
@@ -84,7 +84,7 @@ services:
           cpus: "4"
           memory: "500M"
     depends_on:
-      rabbitmq1:
+      kafka1:
         condition: service_healthy
       timescaledb1:
         condition: service_started
@@ -217,26 +217,26 @@ services:
   #   #   - $PWD/emqx2_data:/opt/emqx/data
 
   # RabbitMQ nodes
-  rabbitmq1:
-    image: rabbitmq:3.13.1-management-alpine
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    volumes:
-      - ./deployment/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
-      - ./deployment/rabbitmq/rabbitmq-definitions.json:/etc/rabbitmq/definitions.json
-    networks:
-      - emqx-bridge
-    healthcheck:
-      test: rabbitmq-diagnostics check_port_connectivity
-      interval: 30s
-      timeout: 30s
-      retries: 10
-    deploy:
-      resources:
-        limits:
-          cpus: "6"
-          memory: "2G"
+  # rabbitmq1:
+  #   image: rabbitmq:3.13.1-management-alpine
+  #   ports:
+  #     - "5672:5672"
+  #     - "15672:15672"
+  #   volumes:
+  #     - ./deployment/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+  #     - ./deployment/rabbitmq/rabbitmq-definitions.json:/etc/rabbitmq/definitions.json
+  #   networks:
+  #     - emqx-bridge
+  #   healthcheck:
+  #     test: rabbitmq-diagnostics check_port_connectivity
+  #     interval: 30s
+  #     timeout: 30s
+  #     retries: 10
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "6"
+  #         memory: "2G"
 
   # TimescaleDB
   timescaledb1:
@@ -304,6 +304,12 @@ services:
       KAFKA_JMX_HOSTNAME: ${DOCKER_HOST_IP:-127.0.0.1}
       KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
       KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+    healthcheck:
+      test: nc -z localhost 9092 || exit -1
+      start_period: 15s
+      interval: 5s
+      timeout: 10s
+      retries: 10
     depends_on:
       - zoo1
     networks:

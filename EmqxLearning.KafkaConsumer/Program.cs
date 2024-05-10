@@ -3,6 +3,8 @@ using EmqxLearning.KafkaConsumer.Services;
 using EmqxLearning.KafkaConsumer.Services.Abstracts;
 using EmqxLearning.Shared.Exceptions;
 using EmqxLearning.Shared.Extensions;
+using EmqxLearning.Shared.Services;
+using EmqxLearning.Shared.Services.Abstracts;
 using Polly.Registry;
 
 namespace EmqxLearning.KafkaConsumer
@@ -43,6 +45,7 @@ namespace EmqxLearning.KafkaConsumer
 
         private static void ConfigServices(IServiceCollection services, IConfiguration configuration)
         {
+            services.AddSingleton<IKafkaManager, KafkaManager>();
             services.AddHostedService<Worker>();
             services.AddTransient<IngestionService>();
             services.AddTransient<BatchIngestionService>();

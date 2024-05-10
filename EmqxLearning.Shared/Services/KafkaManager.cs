@@ -11,10 +11,13 @@ namespace EmqxLearning.Shared.Services
     {
         private readonly ILogger<KafkaManager> _logger;
         private IConfiguration _configuration;
-        private ConcurrentDictionary<string, IProducer<string, string>> _producers;
-        private ConcurrentDictionary<string, IConsumer<string, string>> _consumers;
+        private ConcurrentDictionary<string, IProducer<string, string>> _producers = new ConcurrentDictionary<string, IProducer<string, string>>();
+        private ConcurrentDictionary<string, IConsumer<string, string>> _consumers = new ConcurrentDictionary<string, IConsumer<string, string>>();
 
-        public KafkaManager(IConfiguration configuration, ILogger<KafkaManager> logger) { }
+        public KafkaManager(IConfiguration configuration, ILogger<KafkaManager> logger) {
+            _configuration = configuration;
+            _logger = logger;
+        }
 
         public async Task ACK(string topicName, long offset, CancellationToken token = default)
         {
