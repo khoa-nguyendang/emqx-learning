@@ -51,8 +51,8 @@ namespace EmqxLearning.Shared.Services
                 //Ultimately, it is the producer who chooses which partition to use
                 Task[] tasks = messages.Select((v, i) => _producers[topicName].ProduceAsync(topicName, new Message<string, string>() { Key = i.ToString(), Value = v }, token)).ToArray();
                 await Task.WhenAll(tasks);
-                _producers[topicName].Flush();
-                _logger.LogInformation("Published messages to topic: {topicName}", topicName);
+                _producers[topicName].Flush(token);
+                _logger.LogInformation("Published {messageCount} messages to topic: {topicName}", messages.Length, topicName);
                 return (true, string.Empty);
             }
             catch (Exception ex)

@@ -1,3 +1,4 @@
+using Confluent.Kafka;
 using DeviceId;
 using EmqxLearning.Shared.Exceptions;
 using EmqxLearning.Shared.Models;
@@ -35,7 +36,7 @@ public class Worker : BackgroundService, IHostedService
         _mqttClients = new ConcurrentBag<MqttClientWrapper>();
         _factory = new MqttFactory();
         _messages = new ConcurrentQueue<string>();
-        _mutex = new Mutex(false);
+        _mutex = new Mutex();
         _batchSize = _configuration.GetValue<int>("BatchSettings:BatchSize");
     }
 
@@ -177,26 +178,16 @@ public class Worker : BackgroundService, IHostedService
         try
         {
             var msg = JsonSerializer.Serialize(ingestionMessage);
-            if (_messages.Count == 0) return;
             if (_messages.Count < _batchSize)
             {
                 _messages.Enqueue(msg);
                 return;
             }
-
             //dequeue all
-            if (_mutex.WaitOne(2000))
-            {
-                var messages = new List<string>();
-                while (_messages.TryDequeue(out var m))
-                {
-                    messages.Add(m);
-                };
-
-                var topic = _configuration.GetValue<string>("Kafka:Topic");
-                _logger.LogInformation("Kafka host {host}", _configuration.GetValue<string>("Kafka:BootstrapServers"));
-                await _kafkManager.ProduceMessageAsync(topic, messages.ToArray());
-            }
+            var messages = _messages.ToArray();
+            _messages.Clear();
+            var topic = _configuration.GetValue<string>("Kafka:Topic");
+            await _kafkManager.ProduceMessageAsync(topic, messages);
 
         }
         catch (Exception ex)
