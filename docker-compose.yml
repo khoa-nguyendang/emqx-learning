@@ -24,7 +24,10 @@ services:
       BackgroundProcessing: true
       ScaleFactor: 50
       ScaleCheckInterval: 5000
+      Kafka__BootstrapServers: kafka:29092
       # RabbitMqClient__HostName: rabbitmq1
+    extra_hosts:
+        host.docker.internal: host-gateway
     networks:
       - emqx-bridge
     deploy:
@@ -75,9 +78,11 @@ services:
       BatchSettings__BatchSize: 200
       BatchSettings__WorkerThreadCount: 5
       ConnectionStrings__DeviceDb: Maximum Pool Size=10;User ID=postgres;Password=zaQ@123456!;Host=timescaledb1;Port=5432;Database=device;Pooling=true;
-      Kafka__BootstrapServers: kafka:9092
+      Kafka__BootstrapServers: kafka:29092
     networks:
       - emqx-bridge
+    extra_hosts:
+        host.docker.internal: host-gateway
     deploy:
       replicas: 1
       resources:
@@ -90,68 +95,6 @@ services:
       timescaledb1:
         condition: service_started
   
-  # RabbitMQ consumers
-  # rabbitmq-consumer-1:
-  #   image: emqx-learning/rabbitmq-consumer:latest
-  #   # logging:
-  #   #   driver: none
-  #   build:
-  #     context: .
-  #     dockerfile: EmqxLearning.RabbitMqConsumer/Dockerfile
-  #   environment:
-  #     Logging__LogLevel__Default: Warning
-  #     ProcessingTime: 50
-  #     ConsumerCount: 2
-  #     InsertDb: false
-  #     BatchSettings__Enabled: true
-  #     BatchSettings__BatchInterval: 190
-  #     BatchSettings__BatchSize: 200
-  #     BatchSettings__WorkerThreadCount: 5
-  #     ConnectionStrings__DeviceDb: Maximum Pool Size=10;User ID=postgres;Password=zaQ@123456!;Host=timescaledb1;Port=5432;Database=device;Pooling=true;
-  #     RabbitMqClient__HostName: rabbitmq1
-  #     RabbitMqClient__DispatchConsumersAsync: true
-  #     RabbitMqClient__ConsumerDispatchConcurrency: 5
-  #     RabbitMqChannel__PrefetchCount: 2500
-  #   networks:
-  #     - emqx-bridge
-  #   deploy:
-  #     replicas: 2
-  #     resources:
-  #       limits:
-  #         cpus: "4"
-  #         memory: "500M"
-  #   depends_on:
-  #     rabbitmq1:
-  #       condition: service_healthy
-  #     timescaledb1:
-  #       condition: service_started
-
-  # rabbitmq-function-1:
-  #   image: emqx-learning/rabbitmq-function:latest
-  #   build:
-  #     context: .
-  #     dockerfile: EmqxLearning.RabbitMqFunction/Dockerfile
-  #   environment:
-  #     AzureWebJobsStorage: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;"
-  #     FUNCTIONS_WORKER_RUNTIME: "dotnet"
-  #     AzureServiceBus__Host: "rabbitmq1"
-  #     AzureServiceBus__KeyName: "admin"
-  #     AzureServiceBus__SharedAccessKey: "zaQ@123456!"
-  #     RabbitMQ: "amqp://admin:zaQ%40123456!@rabbitmq1:5672"
-  #     DataFolder: "/var/device/data"
-  #     AzureFunctionsJobHost__logging__LogLevel__Default: "Warning"
-  #     ProcessingTime: 50
-  #   networks:
-  #     - emqx-bridge
-  #   deploy:
-  #     replicas: 1
-  #     resources:
-  #       limits:
-  #         cpus: "1"
-  #         memory: "250M"
-  #   depends_on:
-  #     rabbitmq1:
-  #       condition: service_healthy
 
   # EMQTT bench mark
   # emqtt-bench:
@@ -196,48 +139,6 @@ services:
     # volumes:
     #   - $PWD/emqx1_data:/opt/emqx/data
 
-  # emqx2:
-  #   image: emqx/emqx:5.6.0
-  #   container_name: emqx2
-  #   environment:
-  #     - "EMQX_NODE_NAME=emqx@node2.emqx.io"
-  #     - "EMQX_MQTT__MAX_MQUEUE_LEN=1000000"
-  #     - "EMQX_MQTT__MAX_INFLIGHT=128"
-  #     - "EMQX_CLUSTER__DISCOVERY_STRATEGY=static"
-  #     - "EMQX_CLUSTER__STATIC__SEEDS=[emqx@node1.emqx.io,emqx@node2.emqx.io]"
-  #   healthcheck:
-  #     test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
-  #     interval: 5s
-  #     timeout: 25s
-  #     retries: 5
-  #   networks:
-  #     emqx-bridge:
-  #       aliases:
-  #         - node2.emqx.io
-  #   # volumes:
-  #   #   - $PWD/emqx2_data:/opt/emqx/data
-
-  # RabbitMQ nodes
-  # rabbitmq1:
-  #   image: rabbitmq:3.13.1-management-alpine
-  #   ports:
-  #     - "5672:5672"
-  #     - "15672:15672"
-  #   volumes:
-  #     - ./deployment/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
-  #     - ./deployment/rabbitmq/rabbitmq-definitions.json:/etc/rabbitmq/definitions.json
-  #   networks:
-  #     - emqx-bridge
-  #   healthcheck:
-  #     test: rabbitmq-diagnostics check_port_connectivity
-  #     interval: 30s
-  #     timeout: 30s
-  #     retries: 10
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "6"
-  #         memory: "2G"
 
   # TimescaleDB
   timescaledb1:
@@ -343,20 +244,7 @@ services:
       - emqx-bridge
 
 
-  kafka-init-topics:
-    image: confluentinc/cp-kafka:7.2.1
-    volumes:
-       - ./data/message.json:/data/message.json
-    depends_on:
-      kafka:
-        condition: service_healthy
-    command: "bash -c 'echo Waiting for Kafka to be ready... && \
-               cub kafka-ready -b kafka:29092 1 30 && \
-               kafka-topics --create --topic test --partitions 3 --replication-factor 1 --if-not-exists --bootstrap-server kafka:29092 && \
-               kafka-console-producer --bootstrap-server kafka:29092 --topic test < /data/message.json'"
 
-    networks:
-      - emqx-bridge
   
 networks:
   emqx-bridge:

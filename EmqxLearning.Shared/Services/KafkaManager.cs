@@ -42,6 +42,9 @@ namespace EmqxLearning.Shared.Services
         {
             try
             {
+                if (!_producers.ContainsKey(topicName))
+                    _ = await StartProducerAsync(topicName);
+
                 //Message structure of Kafka <string, string> use to delivery to a partition, 
                 //in this sample I don't defined it, so it would be random by set = null, or id of messages
                 //following Kafka document, Keys can be used to determine the partition, but it's just a default strategy of the producer.
@@ -49,6 +52,7 @@ namespace EmqxLearning.Shared.Services
                 Task[] tasks = messages.Select((v, i) => _producers[topicName].ProduceAsync(topicName, new Message<string, string>() { Key = i.ToString(), Value = v }, token)).ToArray();
                 await Task.WhenAll(tasks);
                 _producers[topicName].Flush();
+                _logger.LogInformation("Published messages to topic: {topicName}", topicName);
                 return (true, string.Empty);
             }
             catch (Exception ex)
@@ -62,8 +66,12 @@ namespace EmqxLearning.Shared.Services
         {
             try
             {
-                await _producers[topicName].ProduceAsync(topicName, new Message<string, string>() { Key = string.Empty, Value = message }, token);
+                _logger.LogInformation("ProduceMessageAsync received message from topic: {topicName} - msg: {message}", topicName, message);
+                if (!_producers.ContainsKey(topicName))
+                    _ = await StartProducerAsync(topicName);
+                await _producers[topicName].ProduceAsync(topicName, new Message<string, string>() { Key = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(), Value = message }, token);
                 _producers[topicName].Flush();
+                _logger.LogInformation("Published message to topic: {topicName}", topicName);
                 return (true, string.Empty);
             }
             catch (Exception ex)
@@ -172,9 +180,14 @@ namespace EmqxLearning.Shared.Services
 
         private async Task<IProducer<string, string>> InitProducer(string topicName, CancellationToken cancellationToken = default)
         {
-            var config = new ProducerConfig { BootstrapServers = _configuration["Kafka:BootstrapServers"] };
+            var config = new ProducerConfig {
+                BootstrapServers = _configuration["Kafka:BootstrapServers"],
+                SaslUsername = _configuration["Kafka:Username"],
+                SaslPassword = _configuration["Kafka:Password"],
+            };
             var producer = new ProducerBuilder<string, string>(config).Build();
             _producers.TryAdd(topicName, producer);
+            _logger.LogInformation("InitProducer for topic: {topicName}", topicName);
             return producer;
         }
 

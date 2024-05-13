@@ -6,6 +6,7 @@ using EmqxLearning.Shared.Extensions;
 using EmqxLearning.Shared.Services;
 using EmqxLearning.Shared.Services.Abstracts;
 using Polly.Registry;
+using Serilog;
 
 namespace EmqxLearning.KafkaConsumer
 {
@@ -13,6 +14,7 @@ namespace EmqxLearning.KafkaConsumer
     {
         public static void Main(string[] args)
         {
+            Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
@@ -21,6 +23,8 @@ namespace EmqxLearning.KafkaConsumer
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddLogging();
+            builder.Services.AddSerilog();
             ConfigServices(builder.Services, builder.Configuration);
             var app = builder.Build();
 
@@ -37,7 +41,7 @@ namespace EmqxLearning.KafkaConsumer
 
 
             app.MapControllers();
-
+            Log.Information("Starting KafkaConsumer application");
             app.Run();
         }
 

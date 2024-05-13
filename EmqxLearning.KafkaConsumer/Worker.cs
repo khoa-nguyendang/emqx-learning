@@ -8,7 +8,7 @@ using static Confluent.Kafka.ConfigPropertyNames;
 
 namespace EmqxLearning.KafkaConsumer;
 
-public class Worker : BackgroundService
+public class Worker : BackgroundService, IHostedService
 {
     private readonly ILogger<Worker> _logger;
     private readonly IConfiguration _configuration;
@@ -41,7 +41,7 @@ public class Worker : BackgroundService
 
     private async Task SetupConsumers(CancellationToken cancellationToken)
     {
-        (var consumer, var err) = await _kafkaManager.StartConsumerAsync(_configuration["Kafka:Topic"], cancellationToken);
+        (var consumer, var err) = await _kafkaManager.StartConsumerAsync(_configuration.GetValue<string>("Kafka:Topic"), cancellationToken);
         if (!string.IsNullOrEmpty(err))
         {
             _logger.LogError(err);
@@ -51,7 +51,7 @@ public class Worker : BackgroundService
         try
         {
 
-            consumer.Subscribe(_configuration["Kafka:Topic"]);
+            consumer.Subscribe(_configuration.GetValue<string>("Kafka:Topic"));
 
             while (true)
             {
@@ -90,7 +90,7 @@ public class Worker : BackgroundService
         {
             _logger.LogInformation("Closing consumer.");
             consumer.Close();
-            await _kafkaManager.ReleaseConsumersAsync(new string[] { _configuration["Kafka:Topic"] });
+            await _kafkaManager.ReleaseConsumersAsync(new string[] { _configuration.GetValue<string>("Kafka:Topic")});
         }
     }
 }

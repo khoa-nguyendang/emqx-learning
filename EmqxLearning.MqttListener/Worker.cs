@@ -7,36 +7,23 @@ using MQTTnet.Client;
 using MQTTnet.Extensions.ManagedClient;
 using MQTTnet.Formatter;
 using MQTTnet.Internal;
-using Polly;
-using Polly.Registry;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
 namespace EmqxLearning.MqttListener;
 
-public class Worker : BackgroundService
+public class Worker : BackgroundService, IHostedService
 {
-    private const int DefaultLockSeconds = 3;
-
-    private Queue<int> _queueCounts = new Queue<int>();
-    private Queue<int> _availableCounts = new Queue<int>();
-    private System.Timers.Timer _concurrencyCollector;
     private readonly ILogger<Worker> _logger;
     private readonly IConfiguration _configuration;
     private readonly IKafkaManager _kafkManager;
     private readonly ConcurrentBag<MqttClientWrapper> _mqttClients;
-    private readonly ResiliencePipeline _connectionErrorsPipeline;
-    private readonly ResiliencePipeline _transientErrorsPipeline;
     private CancellationToken _stoppingToken;
     private CancellationTokenSource _circuitTokenSource;
-    private static readonly SemaphoreSlim _circuitLock = new SemaphoreSlim(initialCount: 1);
         
     private readonly MqttFactory _factory;
-    private bool _isCircuitOpen;
-    private string _testTopic;
     public Worker(ILogger<Worker> logger,
         IConfiguration configuration,
-        ResiliencePipelineProvider<string> resiliencePipelineProvider,
         IKafkaManager kafkManager)
     {
         _logger = logger;
@@ -44,14 +31,13 @@ public class Worker : BackgroundService
         _kafkManager = kafkManager;
         _circuitTokenSource = new CancellationTokenSource();
         _mqttClients = new ConcurrentBag<MqttClientWrapper>();
-        _connectionErrorsPipeline = resiliencePipelineProvider.GetPipeline(Constants.ResiliencePipelines.ConnectionErrors);
-        _transientErrorsPipeline = resiliencePipelineProvider.GetPipeline(Constants.ResiliencePipelines.TransientErrors);
         _factory = new MqttFactory();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _stoppingToken = stoppingToken;
+        _logger.LogInformation("Start ExecuteAsync MqttListener worker");
         //testing with default 5 worker per processors.
         int workerAmount = Environment.ProcessorCount > 1 ? (Environment.ProcessorCount - 1) * 5 : 1 * 5;
         var options = new ParallelOptions
@@ -59,13 +45,16 @@ public class Worker : BackgroundService
             MaxDegreeOfParallelism = Environment.ProcessorCount
         };
 
-        await Parallel.ForEachAsync(Enumerable.Range(1, workerAmount), options, async ( index, ct) =>
+        await Parallel.ForEachAsync(Enumerable.Range(1, workerAmount), options, async (index, ct) =>
         {
+            _logger.LogInformation("Initialize MqttClient {index}", index);
             await InitializeMqttClient(index);
         });
-
+        _logger.LogInformation("completed initiate MqttClients");
         while (!stoppingToken.IsCancellationRequested)
+        {
             await Task.Delay(1000, stoppingToken);
+        }
     }
 
     private void SetupCancellationTokens()
@@ -76,26 +65,6 @@ public class Worker : BackgroundService
             foreach (var wrapper in _mqttClients)
                 wrapper.TokenSource.TryCancel();
         });
-    }
-
-
-
-
-    private async Task RestartMqttClients()
-    {
-        foreach (var wrapper in _mqttClients)
-        {
-            var mqttClient = wrapper.Client;
-            await _connectionErrorsPipeline.ExecuteAsync(async (token) =>
-            {
-                try { await mqttClient.StartAsync(mqttClient.Options); }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning("Reconnecting MQTT client {ClientId} failed, reason: {Message}",mqttClient.Options.ClientOptions.ClientId,ex.Message);
-                    throw;
-                }
-            });
-        }
     }
 
     private async Task StopMqttClients()
@@ -137,11 +106,10 @@ public class Worker : BackgroundService
 
         mqttClient.ConnectedAsync += (e) => OnConnected(e, mqttClient);
         mqttClient.DisconnectedAsync += (e) => OnDisconnected(e, wrapper);
+        mqttClient.ConnectingFailedAsync += (e) => OnFailToConnect(e);
         mqttClient.ApplicationMessageReceivedAsync += ((e) => OnMessageReceivedBackground(e, wrapper));
 
-        await _connectionErrorsPipeline.ExecuteAsync(async (token) =>
-            await mqttClient.StartAsync(managedOptions),
-            cancellationToken: _stoppingToken);
+        await mqttClient.StartAsync(managedOptions);
     }
 
     private async Task OnConnected(MqttClientConnectedEventArgs e, IManagedMqttClient mqttClient)
@@ -149,20 +117,7 @@ public class Worker : BackgroundService
         _logger.LogInformation("### CONNECTED WITH SERVER - ClientId: {0} ###", mqttClient.Options.ClientOptions.ClientId);
         var topic = _configuration["MqttClientOptions:Topic"];
         var qos = _configuration.GetValue<MQTTnet.Protocol.MqttQualityOfServiceLevel>("MqttClientOptions:QoS");
-
-        await _connectionErrorsPipeline.ExecuteAsync(async (token) =>
-        {
-            try
-            {
-                await mqttClient.SubscribeAsync(topic: topic, qualityOfServiceLevel: qos);
-                _logger.LogInformation("### SUBSCRIBED topic {0} - qos {1} ###", topic, qos);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Subscribing MQTT topic failed, reason: {Message}", ex.Message);
-                throw;
-            }
-        }, cancellationToken: _stoppingToken);
+        await mqttClient.SubscribeAsync(topic: topic, qualityOfServiceLevel: qos);
     }
 
     private async Task OnMessageReceivedNormal(MqttApplicationMessageReceivedEventArgs e)
@@ -171,20 +126,16 @@ public class Worker : BackgroundService
         _logger.LogInformation("Received message at {Time}", DateTime.Now);
     }
 
+    private async Task OnFailToConnect(ConnectingFailedEventArgs e)
+    {
+        _logger.LogError("OnFailToConnect {e}", e);
+    }
+
     private async Task OnMessageReceivedBackground(MqttApplicationMessageReceivedEventArgs e, MqttClientWrapper wrapper)
     {
         try
         {
-            _ = await Task.Factory.StartNew(async () =>
-            {
-                try { await HandleMessage(e, wrapper); }
-                catch (DownstreamDisconnectedException ex)
-                {
-                    _logger.LogError(ex, ex.Message);
-                    var _ = Task.Factory.StartNew(HandleOpenCircuit);
-                }
-                catch (Exception ex) { _logger.LogError(ex, ex.Message); }
-            });
+            await HandleMessage(e, wrapper);
         }
         catch (Exception ex)
         {
@@ -192,36 +143,19 @@ public class Worker : BackgroundService
         }
     }
 
-    private async Task HandleOpenCircuit()
-    {
-        await OpenCircuit();
-        var reconnectAfter = _configuration.GetValue<int>("ResilienceSettings:CircuitBreakerReconnectAfter");
-        System.Timers.Timer closeTimer = new System.Timers.Timer(reconnectAfter);
-        closeTimer.Elapsed += async (s, e) => await CloseCircuit();
-        closeTimer.AutoReset = false;
-        closeTimer.Start();
-    }
 
     private async Task HandleMessage(MqttApplicationMessageReceivedEventArgs e, MqttClientWrapper wrapper)
     {
         var payload = JsonSerializer.Deserialize<Dictionary<string, object>>(e.ApplicationMessage.PayloadSegment);
         var ingestionMessage = new IngestionMessage(payload);
         await SendIngestionMessage(ingestionMessage);
-
-        await _transientErrorsPipeline.ExecuteAsync(
-            async (token) =>
-            {
-                if (_isCircuitOpen) throw new CircuitOpenException();
-                await e.AcknowledgeAsync(token);
-            },
-            cancellationToken: wrapper.TokenSource.Token);
+        await e.AcknowledgeAsync(default);
     }
 
     private Task OnDisconnected(MqttClientDisconnectedEventArgs e, MqttClientWrapper wrapper)
     {
         wrapper.TokenSource.TryCancel();
-        _logger.LogError(e.Exception, "### DISCONNECTED FROM SERVER ### {Event}",
-            e.Exception == null ? JsonSerializer.Serialize(e) : string.Empty);
+        _logger.LogError(e.Exception, "### DISCONNECTED FROM SERVER ### {Event}", e.Exception == null ? JsonSerializer.Serialize(e) : string.Empty);
         return Task.CompletedTask;
     }
 
@@ -236,12 +170,10 @@ public class Worker : BackgroundService
     {
         try
         {
-            var producer = await _kafkManager.StartProducerAsync(_configuration["Kafka:Topic"]);
+            var topic = _configuration.GetValue<string>("Kafka:Topic");
+            _logger.LogInformation("Kafka host {host}", _configuration.GetValue<string>("Kafka:BootstrapServers"));
             var bytes = JsonSerializer.SerializeToUtf8Bytes(ingestionMessage);
-            await _transientErrorsPipeline.Execute(async () =>
-            {
-                await _kafkManager.ProduceMessageAsync(_configuration["Kafka:Topic"], JsonSerializer.Serialize(ingestionMessage));
-            });
+            await _kafkManager.ProduceMessageAsync(topic, JsonSerializer.Serialize(ingestionMessage));
         }
         catch (Exception ex)
         {
@@ -249,48 +181,6 @@ public class Worker : BackgroundService
         }
     }
 
-    private void StopConcurrencyCollector()
-    {
-        _concurrencyCollector.Stop();
-        _queueCounts.Clear();
-        _availableCounts.Clear();
-    }
-
-
-    private async Task OpenCircuit()
-    {
-        var acquired = await _circuitLock.WaitAsync(TimeSpan.FromSeconds(DefaultLockSeconds));
-        if (acquired)
-        {
-            try
-            {
-                if (_isCircuitOpen == true) return;
-                _logger.LogWarning("Opening circuit breaker ...");
-                StopConcurrencyCollector();
-                _circuitTokenSource.Cancel();
-                await StopMqttClients();
-                _isCircuitOpen = true;
-                _logger.LogWarning("Circuit breaker is now open");
-            }
-            finally { _circuitLock.Release(); }
-        }
-    }
-
-    private async Task CloseCircuit()
-    {
-        var acquired = await _circuitLock.WaitAsync(TimeSpan.FromSeconds(DefaultLockSeconds));
-        if (acquired)
-        {
-            try
-            {
-               
-            }
-            finally
-            {
-                _circuitLock.Release();
-            }
-        }
-    }
 
     public override void Dispose()
     {

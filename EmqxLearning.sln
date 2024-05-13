@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EmqxLearning.MqttListener", "EmqxLearning.MqttListener\EmqxLearning.MqttListener.csproj", "{E386D96A-BC84-4555-8D70-5AEB9A248CC2}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EmqxLearning.MqttPublisher", "EmqxLearning.MqttPublisher\EmqxLearning.MqttPublisher.csproj", "{E0F35890-90AD-4B29-95CA-5073ED1EE052}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EmqxLearning.Shared", "EmqxLearning.Shared\EmqxLearning.Shared.csproj", "{04AB68BD-D99E-453F-851D-E3FF0C01FEED}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EmqxLearning.KafkaConsumer", "EmqxLearning.KafkaConsumer\EmqxLearning.KafkaConsumer.csproj", "{A5518502-7D78-4F1E-B217-5F4C51B10544}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EmqxLearning.MqttListener", "EmqxLearning.MqttListener\EmqxLearning.MqttListener.csproj", "{CEBE74E7-E93A-43DB-814A-24E1FEBAF710}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{E386D96A-BC84-4555-8D70-5AEB9A248CC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E386D96A-BC84-4555-8D70-5AEB9A248CC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E386D96A-BC84-4555-8D70-5AEB9A248CC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E386D96A-BC84-4555-8D70-5AEB9A248CC2}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E0F35890-90AD-4B29-95CA-5073ED1EE052}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E0F35890-90AD-4B29-95CA-5073ED1EE052}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E0F35890-90AD-4B29-95CA-5073ED1EE052}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -33,6 +29,10 @@ Global
 		{A5518502-7D78-4F1E-B217-5F4C51B10544}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A5518502-7D78-4F1E-B217-5F4C51B10544}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A5518502-7D78-4F1E-B217-5F4C51B10544}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CEBE74E7-E93A-43DB-814A-24E1FEBAF710}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CEBE74E7-E93A-43DB-814A-24E1FEBAF710}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CEBE74E7-E93A-43DB-814A-24E1FEBAF710}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CEBE74E7-E93A-43DB-814A-24E1FEBAF710}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
