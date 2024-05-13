@@ -25,6 +25,7 @@ services:
       ScaleFactor: 50
       ScaleCheckInterval: 5000
       Kafka__BootstrapServers: kafka:29092
+      WorkerPerProcessor: 30
       # RabbitMqClient__HostName: rabbitmq1
     extra_hosts:
         host.docker.internal: host-gateway

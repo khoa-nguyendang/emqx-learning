@@ -20,8 +20,10 @@ public class Worker : BackgroundService, IHostedService
     private readonly ConcurrentBag<MqttClientWrapper> _mqttClients;
     private CancellationToken _stoppingToken;
     private CancellationTokenSource _circuitTokenSource;
-        
+    private readonly ConcurrentQueue<string> _messages;
     private readonly MqttFactory _factory;
+    private readonly int _batchSize;
+    private readonly Mutex _mutex;
     public Worker(ILogger<Worker> logger,
         IConfiguration configuration,
         IKafkaManager kafkManager)
@@ -32,14 +34,18 @@ public class Worker : BackgroundService, IHostedService
         _circuitTokenSource = new CancellationTokenSource();
         _mqttClients = new ConcurrentBag<MqttClientWrapper>();
         _factory = new MqttFactory();
+        _messages = new ConcurrentQueue<string>();
+        _mutex = new Mutex(false);
+        _batchSize = _configuration.GetValue<int>("BatchSettings:BatchSize");
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _stoppingToken = stoppingToken;
         _logger.LogInformation("Start ExecuteAsync MqttListener worker");
+        var workersPerProcessor = _configuration.GetValue<int>("WorkerPerProcessor");
         //testing with default 5 worker per processors.
-        int workerAmount = Environment.ProcessorCount > 1 ? (Environment.ProcessorCount - 1) * 5 : 1 * 5;
+        int workerAmount = Environment.ProcessorCount > 1 ? (Environment.ProcessorCount - 1) * workersPerProcessor : 1 * workersPerProcessor;
         var options = new ParallelOptions
         {
             MaxDegreeOfParallelism = Environment.ProcessorCount
@@ -170,10 +176,28 @@ public class Worker : BackgroundService, IHostedService
     {
         try
         {
-            var topic = _configuration.GetValue<string>("Kafka:Topic");
-            _logger.LogInformation("Kafka host {host}", _configuration.GetValue<string>("Kafka:BootstrapServers"));
-            var bytes = JsonSerializer.SerializeToUtf8Bytes(ingestionMessage);
-            await _kafkManager.ProduceMessageAsync(topic, JsonSerializer.Serialize(ingestionMessage));
+            var msg = JsonSerializer.Serialize(ingestionMessage);
+            if (_messages.Count == 0) return;
+            if (_messages.Count < _batchSize)
+            {
+                _messages.Enqueue(msg);
+                return;
+            }
+
+            //dequeue all
+            if (_mutex.WaitOne(2000))
+            {
+                var messages = new List<string>();
+                while (_messages.TryDequeue(out var m))
+                {
+                    messages.Add(m);
+                };
+
+                var topic = _configuration.GetValue<string>("Kafka:Topic");
+                _logger.LogInformation("Kafka host {host}", _configuration.GetValue<string>("Kafka:BootstrapServers"));
+                await _kafkManager.ProduceMessageAsync(topic, messages.ToArray());
+            }
+
         }
         catch (Exception ex)
         {

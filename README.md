@@ -5,7 +5,7 @@
 + To start benchmark test using `mqtt-publisher`, access the interactive shell of `mqtt-publisher` container, then execute below command:
 
 ```sh
-./EmqxLearning.MqttPublisher -n=1 -I=980 -q=1 -m='{"messageId":1,"temperature":32.81665161616013,"humidity":71.98951628617453,"deviceId":"DB","timestamp":1679898067325,"ack":true,"snr":9,"txt":"text"}'
+./EmqxLearning.MqttPublisher -n=15000 -I=980 -q=1 -m='{"messageId":1,"temperature":32.81665161616013,"humidity":71.98951628617453,"deviceId":"DB","timestamp":1679898067325,"ack":true,"snr":9,"txt":"text"}'
 ```
 
 Large payload ~4KB (remove `-m` option)
